@@ -1,6 +1,6 @@
 # Optimize Matrix Multiplication
 
-Implemtation of the DGEMM with different methods
+Implementation of the Double General Matrix Multiplication (DGEMM) with the following methods in C++:
  - [x] Naive implementation
  - [ ] openMP
  - [ ] Cache blocking
