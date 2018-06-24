@@ -5,6 +5,8 @@
 #include <random>
 #include <iostream>
 #include <memory>
+#include <cblas.h>
+
 
 double doubleRandomGenerator(){
 	std::random_device rd;  
@@ -32,6 +34,10 @@ int main(int argc, char const *argv[]){
 	matrix_B = (double *)malloc( dim*dim*sizeof( double ));
 	matrix_C = (double *)malloc( dim*dim*sizeof( double ));
 
+
+	std::cout <<"Size of double: " << sizeof(double) << std::endl;
+	std::cout << "Size of 1 Matrix : " << dim*dim*sizeof(double)*3/1024/1024 << " MB"<< std::endl;
+
 	for(int i=0; i < dim*dim; i++){
 		matrix_A[i]=doubleRandomGenerator();
 		matrix_B[i]=doubleRandomGenerator();
@@ -48,6 +54,9 @@ int main(int argc, char const *argv[]){
 	}
 
 	printMatrix(dim, matrix_C);
+
+	cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, dim, dim, dim, 1.0, matrix_A, dim, matrix_B, dim, 1.0, matrix_C, dim);
+
 
 	free(matrix_A);
 	free(matrix_B);
