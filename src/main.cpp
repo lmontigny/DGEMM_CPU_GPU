@@ -10,6 +10,8 @@
 
 #include <sys/time.h>
 #include <time.h>
+#include <omp.h>
+
 
 
 using namespace std::chrono;
@@ -31,13 +33,51 @@ void printMatrix(const int &dim, const double *matrix){
 	}
 }
 
+template<typename Clock>
+void printDuration(const std::chrono::time_point<Clock> &t1, const std::chrono::time_point<Clock> &t2, const int &dim){
+	auto duration = duration_cast<microseconds>( t2 - t1 ).count();
+	std::cout << "duration: " <<  duration*1.0e-6 << std::endl;
+
+	//double gflops = 2.0 * dim * dim * dim;
+	//gflops = gflops/duration*1.0e-6;
+	//std::cout << "GFLOPS: " << gflops << std::endl;
+}
+
+void dgemmBLAS(const int&dim, const double* matrix_A, const double* matrix_B, double *matrix_C){
+	         //openblas_set_num_threads(3);
+
+	high_resolution_clock::time_point t1 = high_resolution_clock::now();
+	cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, dim, dim, dim, 1.0, matrix_A, dim, matrix_B, dim, 1.0, matrix_C, dim);
+	high_resolution_clock::time_point t2 = high_resolution_clock::now();
+
+	std::cout << "BLAS ";
+	printDuration(t1, t2, dim);
+}
+
+void dgemmForLoop(const int&dim, const double* matrix_A, const double* matrix_B, double *matrix_C){
+	high_resolution_clock::time_point t1 = high_resolution_clock::now();
+	for(int i=0; i<dim; i++){  // row
+		for(int j=0; j<dim; j++){ // col
+				double sum = 0;
+				for(int k=0; k<dim; k++){
+					sum += matrix_A[i*dim + k] * matrix_B[k*dim + j];
+				}
+				matrix_C[i*dim+j] = sum;
+		}
+	}
+	high_resolution_clock::time_point t2 = high_resolution_clock::now();
+
+	std::cout << "For Loop ";
+	printDuration(t1, t2, dim);
+}
+
 int main(int argc, char const *argv[]){
 	
 	int dim;
 	double *matrix_A, *matrix_B, *matrix_C;
 	//std::unique_ptr<double> matrix_A = std::make_unique<double>();
 
-	dim = 512;
+	dim = 256;
 	matrix_A = (double *)malloc( dim*dim*sizeof( double ));
 	matrix_B = (double *)malloc( dim*dim*sizeof( double ));
 	matrix_C = (double *)malloc( dim*dim*sizeof( double ));
@@ -51,37 +91,16 @@ int main(int argc, char const *argv[]){
 		matrix_B[i]=doubleRandomGenerator();
 	}
 
-high_resolution_clock::time_point t1 = high_resolution_clock::now();
-	for(int i=0; i<dim; i++){  // row
-		for(int j=0; j<dim; j++){ // col
-				double sum = 0;
-				for(int k=0; k<dim; k++){
-					sum += matrix_A[i*dim + k] * matrix_B[k*dim + j];
-				}
-				matrix_C[i*dim+j] = sum;
-		}
-	}
-high_resolution_clock::time_point t2 = high_resolution_clock::now();
-    //auto duration = duration_cast<microseconds>( t2 - t1 ).count();
+//#ifdef _OPENMP
+	std::cout << "Will use: "<< omp_get_max_threads() << " threads"<<std::endl;
+	std::cout << "Will use: "<< omp_get_num_procs() << " threads"<<std::endl;
+//#endif
 
-    //std::cout << duration << std::endl;
+
+	dgemmForLoop(dim, matrix_A, matrix_B, matrix_C);
+	dgemmBLAS(dim, matrix_A, matrix_B, matrix_C);
 
 	//printMatrix(dim, matrix_C);
-
-  struct timeval start,finish;
-  double duration;
-
-gettimeofday(&start, NULL);
-	cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, dim, dim, dim, 1.0, matrix_A, dim, matrix_B, dim, 1.0, matrix_C, dim);
-  gettimeofday(&finish, NULL);
-
-  duration = ((double)(finish.tv_sec-start.tv_sec)*1000000 + (double)(finish.tv_usec-start.tv_usec)) / 1000000;
-  double gflops = 2.0 * dim * dim * dim;
-  gflops = gflops/duration*1.0e-6;
-
-std::cout << gflops << " " << duration;
-
-
 
 	free(matrix_A);
 	free(matrix_B);
