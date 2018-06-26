@@ -12,6 +12,10 @@
 #include <time.h>
 #include <omp.h>
 
+#include "dgemm_openMP.h"
+#include "dgemm_ForLoopNaive.h"
+#include "dgemm_BLAS.h"
+
 
 
 using namespace std::chrono;
@@ -43,54 +47,6 @@ void printDuration(const std::chrono::time_point<Clock> &t1, const std::chrono::
 	//std::cout << "GFLOPS: " << gflops << std::endl;
 }
 
-void dgemmBLAS(const int&dim, const double* matrix_A, const double* matrix_B, double *matrix_C){
-	         //openblas_set_num_threads(3);
-
-	high_resolution_clock::time_point t1 = high_resolution_clock::now();
-	cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, dim, dim, dim, 1.0, matrix_A, dim, matrix_B, dim, 1.0, matrix_C, dim);
-	high_resolution_clock::time_point t2 = high_resolution_clock::now();
-
-	std::cout << "BLAS ";
-	printDuration(t1, t2, dim);
-}
-
-void dgemmForLoop(const int&dim, const double* matrix_A, const double* matrix_B, double *matrix_C){
-	high_resolution_clock::time_point t1 = high_resolution_clock::now();
-	for(int i=0; i<dim; i++){  // row
-		for(int j=0; j<dim; j++){ // col
-				double sum = 0;
-				for(int k=0; k<dim; k++){
-					sum += matrix_A[i*dim + k] * matrix_B[k*dim + j];
-				}
-				matrix_C[i*dim+j] = sum;
-		}
-	}
-	high_resolution_clock::time_point t2 = high_resolution_clock::now();
-
-	std::cout << "For Loop ";
-	printDuration(t1, t2, dim);
-}
-
-void dgemmForLoopOpenMP(const int&dim, const double* matrix_A, const double* matrix_B, double *matrix_C){
-	high_resolution_clock::time_point t1 = high_resolution_clock::now();
-	#pragma omp parallel
-	{
-	int i,j,k;
-	#pragma omp for
-	for( i = 0; i < dim; i++ )
-	     for( j = 0; j < dim; j++ )
-	     {
-	          double cij = matrix_C[i+j*dim];
-	          for( k = 0; k < dim; k++ )
-	      	 cij += matrix_A[i+k*dim] * matrix_B[k+j*dim];
-	          matrix_C[i+j*dim] = cij;
-	     }
-}
-	high_resolution_clock::time_point t2 = high_resolution_clock::now();
-
-	std::cout << "For Loop openMP ";
-	printDuration(t1, t2, dim);
-}
 
 int main(int argc, char const *argv[]){
 	
@@ -119,10 +75,9 @@ int main(int argc, char const *argv[]){
 	std::cout << "Will use: "<< omp_get_num_procs() << " threads"<<std::endl;
 //#endif
 
-
-	//dgemmForLoop(dim, matrix_A, matrix_B, matrix_C);
-	//dgemmBLAS(dim, matrix_A, matrix_B, matrix_C);
-	//dgemmForLoopOpenMP(dim, matrix_A, matrix_B, matrix_C);
+	dgemmForLoopNaive(dim, matrix_A, matrix_B, matrix_C);
+	dgemmBLAS(dim, matrix_A, matrix_B, matrix_C);
+	dgemmForLoopOpenMP(dim, matrix_A, matrix_B, matrix_C);
 
 
 	//printMatrix(dim, matrix_C);
