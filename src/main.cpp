@@ -71,21 +71,44 @@ void dgemmForLoop(const int&dim, const double* matrix_A, const double* matrix_B,
 	printDuration(t1, t2, dim);
 }
 
+void dgemmForLoopOpenMP(const int&dim, const double* matrix_A, const double* matrix_B, double *matrix_C){
+	high_resolution_clock::time_point t1 = high_resolution_clock::now();
+	#pragma omp parallel
+	{
+	int i,j,k;
+	#pragma omp for
+	for( i = 0; i < dim; i++ )
+	     for( j = 0; j < dim; j++ )
+	     {
+	          double cij = matrix_C[i+j*dim];
+	          for( k = 0; k < dim; k++ )
+	      	 cij += matrix_A[i+k*dim] * matrix_B[k+j*dim];
+	          matrix_C[i+j*dim] = cij;
+	     }
+}
+	high_resolution_clock::time_point t2 = high_resolution_clock::now();
+
+	std::cout << "For Loop openMP ";
+	printDuration(t1, t2, dim);
+}
+
 int main(int argc, char const *argv[]){
 	
 	int dim;
 	double *matrix_A, *matrix_B, *matrix_C;
 	//std::unique_ptr<double> matrix_A = std::make_unique<double>();
 
-	dim = 256;
+	dim = 512;
 	matrix_A = (double *)malloc( dim*dim*sizeof( double ));
 	matrix_B = (double *)malloc( dim*dim*sizeof( double ));
 	matrix_C = (double *)malloc( dim*dim*sizeof( double ));
 
 
 	std::cout <<"Size of double: " << sizeof(double) << std::endl;
+	std::cout <<"Number of elements: " << dim*dim << std::endl;
 	std::cout << "Size of 1 Matrix : " << dim*dim*sizeof(double)*3/1024/1024 << " MB"<< std::endl;
 
+	#pragma omp parallel
 	for(int i=0; i < dim*dim; i++){
 		matrix_A[i]=doubleRandomGenerator();
 		matrix_B[i]=doubleRandomGenerator();
@@ -97,8 +120,10 @@ int main(int argc, char const *argv[]){
 //#endif
 
 
-	dgemmForLoop(dim, matrix_A, matrix_B, matrix_C);
-	dgemmBLAS(dim, matrix_A, matrix_B, matrix_C);
+	//dgemmForLoop(dim, matrix_A, matrix_B, matrix_C);
+	//dgemmBLAS(dim, matrix_A, matrix_B, matrix_C);
+	//dgemmForLoopOpenMP(dim, matrix_A, matrix_B, matrix_C);
+
 
 	//printMatrix(dim, matrix_C);
 

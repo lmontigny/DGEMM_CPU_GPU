@@ -2,10 +2,11 @@
 
 Implementation of the Double General Matrix Multiplication (DGEMM) with the following methods in C++:
  - [x] Naive implementation
- - [ ] openMP
+ - [x] openMP
  - [ ] Cache blocking
  - [ ] Intel MKL
- - [ ] BLAS
+ - [x] BLAS
  - [ ] OpenACC
- - [ ] CUDA
+ - [x] CUDA
  - [ ] cuBLAS
+ - [ ] openCL
